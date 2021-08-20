@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">TestApplication</string>
+
+    <string name="performance__memory">Memory</string>
+    <string name="performance__response_time">Response Time</string>
+    <string name="performance__framerate">Frame Rate</string>
+    <string name="performance__game_fps">Game FPS</string>
+    <string name="performance__battery">Battery</string>
+    <string name="performance__network">Network</string>
+    <string name="performance__process_status">Process Status</string>
+
+    <string name="main_start_record">开始录音</string>
+    <string name="main_stop_record">停止录音</string>
+    <string name="main_start_bluesco">切换蓝牙通路</string>
+    <string name="main_close_bluesco_tocall">切换听筒</string>
+    <string name="main_close_bluesco_tospeaker">切换扬声器</string>
+</resources>

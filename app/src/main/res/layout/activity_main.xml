@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btn_start_play"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/main_start_record"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="20dp"
+        />
+
+
+    <RadioGroup
+        android:id="@+id/rg_play_mode_select"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_start_play"
+        >
+        <RadioButton
+            android:id="@+id/rb_mode_communication"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODE_IN_COMMUNICATION"
+            />
+        <RadioButton
+            android:id="@+id/rb_mode_call"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODE_IN_CALL"
+            />
+        <RadioButton
+            android:id="@+id/rb_mode_normal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODE_NORMAL"
+            />
+        <RadioButton
+            android:id="@+id/rb_mode_ring"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MODE_RINGTONE"
+            />
+        
+    </RadioGroup>
+
+
+    <RadioGroup
+        android:id="@+id/rg_channel_select"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/rg_play_mode_select"
+        >
+        <RadioButton
+            android:id="@+id/rb_opensco_stopspeaker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="开蓝牙sco   关扬声器"
+            />
+        <RadioButton
+            android:id="@+id/rb_stopsco_openspeaker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="关蓝牙sco   开扬声器"
+            />
+        <RadioButton
+            android:id="@+id/rb_stopsco_stopspeaker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="关蓝牙sco   关扬声器"
+            />
+
+    </RadioGroup>
+
+    
+    
+    <TextView
+        android:id="@+id/tv_main_volume"
+        android:text="0"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="48dp"
+        android:textColor="@color/purple_200"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/rg_channel_select"
+
+        />
+
+    <Button
+        android:id="@+id/btn_open_speaker"
+        android:text="打开扬声器"
+        app:layout_constraintTop_toBottomOf="@+id/tv_main_volume"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
