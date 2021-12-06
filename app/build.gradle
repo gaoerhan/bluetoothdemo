@@ -43,6 +43,11 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     compileOnly 'com.alibaba:fastjson:1.2.73'
+    implementation "com.umeng.umsdk:common:9.4.2" //
+    implementation "com.umeng.umsdk:asms:1.4.1" // asms包
+    implementation "com.umeng.umsdk:apm:1.4.2" // U-APM产品包
 
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2'
 
 }

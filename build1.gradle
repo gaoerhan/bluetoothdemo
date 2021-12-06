@@ -1,0 +1,28 @@
+//自定义Task类，必须继承自DefaultTask
+class SayHelloTask extends DefaultTask {
+
+    String msg = "default name"
+    int age = 18
+
+    //构造函数必须用@javax.inject.Inject注解标识
+    @javax.inject.Inject
+    SayHelloTask(int age) {
+        this.age = age
+    }
+
+    //通过@TaskAction注解来标识该Task要执行的动作
+    @TaskAction
+    void sayHello() {
+        println "Hello $msg ! age is ${age}"
+    }
+
+}
+
+//通过constructorArgs参数来指定构造函数的参数值
+task hello1(type: SayHelloTask, constructorArgs: [30])
+
+//通过type参数指定task的父类，可以在配置代码里修改父类的属性
+task hello2(type: SayHelloTask, constructorArgs: [18]) {
+    //配置代码里修改 SayHelloTask 里的字段 msg 的值
+    msg = "hjy"
+}

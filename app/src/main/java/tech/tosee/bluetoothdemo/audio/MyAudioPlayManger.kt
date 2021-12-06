@@ -2,6 +2,7 @@
 package tech.tosee.bluetoothdemo.audio
 
 import android.os.Handler
+import android.util.Log
 import tech.tosee.bluetoothdemo.utils.AudioUtil
 
 
@@ -14,10 +15,15 @@ class MyAudioPlayManger {
     private var audioTrack: MyAudioTrack? = null
     private var audioRecord: MyAudioRecord? = null
     private var volumeCallback: Handler? = null
+    @Volatile
+    private var isStop = false
+
     private var lasttime = 0L
+    private var nullData = ByteArray(1280){0}
     private val dataCallBack: MyAudioRecord.AudioDataCallBack = object : MyAudioRecord.AudioDataCallBack{
         override fun onAudioData(byteArray: ByteArray) {
-            audioTrack?.addAudioData(byteArray)
+            if(!isStop) audioTrack?.addAudioData(byteArray)
+            else audioTrack?.addAudioData(nullData)
             val now = System.currentTimeMillis()
             if(now - lasttime > 200){
                 volumeCallback?.sendEmptyMessage(AudioUtil.culateVolume(byteArray))
@@ -55,5 +61,8 @@ class MyAudioPlayManger {
     }
 
 
+    fun pausePlay(isStop:Boolean){
+        this.isStop = isStop
+    }
 
 }

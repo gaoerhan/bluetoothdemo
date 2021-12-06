@@ -3,17 +3,20 @@ package tech.tosee.bluetoothdemo.audio
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
 import android.os.Build
 import android.util.Log
-import android.view.KeyEvent
 
 
 class MyAudioManager {
     val TAG = "AudioManager"
+    private val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
+    private val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
+    private val routeChangeListener: RouteChangeListener? = null
     private var bluetoothManager: DBBluetoothManager? = null
     private var audioManager: AudioManager? = null
     private var headSetManager: HeadSetManager? = null
@@ -21,9 +24,52 @@ class MyAudioManager {
     private var savedIsMicrophoneMute = false
     private var audioFocusChangeListener: OnAudioFocusChangeListener? = null
     private var mAudioFocusRequest: AudioFocusRequest? = null
+    private var wiredHeadsetReceiver: BroadcastReceiver? = null
+    private var mVolumeReceiver: VolumeReceiver? = null
+    private var mContext: Context? = null
+
+    inner class WiredHeadsetReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val state = intent.getIntExtra("state", STATE_UNPLUGGED)
+            val microphone = intent.getIntExtra("microphone", HAS_NO_MIC)
+            val name = intent.getStringExtra("name")
+            Log.e(TAG, "耳机广播 刷新")
+        }
+
+            private  val STATE_UNPLUGGED = 0
+            private  val TAG = "AudioManager"
+            private  val STATE_PLUGGED = 1
+            private  val HAS_NO_MIC = 0
+            private  val HAS_MIC = 1
+
+    }
+
+    inner class VolumeReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (VOLUME_CHANGED_ACTION == intent.action && (intent.getIntExtra(
+                    EXTRA_VOLUME_STREAM_TYPE,
+                    -1
+                ) == AudioManager.STREAM_VOICE_CALL
+                        || intent.getIntExtra(
+                    EXTRA_VOLUME_STREAM_TYPE,
+                    -1
+                ) == 6 /*6表示蓝牙*/)
+            ) {
+                val streamVolume: Int = getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+
+            }
+        }
+    }
+
+    fun getStreamVolume(streamType: Int): Int {
+        return audioManager!!.getStreamVolume(streamType)
+    }
 
     constructor(context: Context) {
-        bluetoothManager = DBBluetoothManager.create(context)
+        mContext = context
+        bluetoothManager = DBBluetoothManager.create(context,this)
+        wiredHeadsetReceiver = WiredHeadsetReceiver()
+        mVolumeReceiver = VolumeReceiver()
         audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         headSetManager = HeadSetManager(context)
     }
@@ -37,16 +83,18 @@ class MyAudioManager {
             when (focusChange) {
                 AudioManager.AUDIOFOCUS_GAIN -> {
                     typeOfChange = "AUDIOFOCUS_GAIN"
-                    bluetoothManager?.startScan()
                 }
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> typeOfChange = "AUDIOFOCUS_GAIN_TRANSIENT"
+
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE -> typeOfChange =
                     "AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE"
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> typeOfChange =
                     "AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK"
                 AudioManager.AUDIOFOCUS_LOSS -> typeOfChange = "AUDIOFOCUS_LOSS"
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+//                    bluetoothManager?.resetState()
                     typeOfChange = "AUDIOFOCUS_LOSS_TRANSIENT"
+
                 }
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> typeOfChange =
                     "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK"
@@ -86,6 +134,11 @@ class MyAudioManager {
         }
         audioManager!!.mode = AudioManager.MODE_IN_COMMUNICATION
         setMicrophoneMute(false)
+        registerReceiver(wiredHeadsetReceiver, IntentFilter(Intent.ACTION_HEADSET_PLUG))
+        registerReceiver(
+            mVolumeReceiver,
+            IntentFilter(VOLUME_CHANGED_ACTION)
+        )
         bluetoothManager?.start()
         headSetManager?.startHeadset()
 
@@ -146,8 +199,19 @@ class MyAudioManager {
         }
     }
 
+    internal interface RouteChangeListener {
+        fun onRouteChange()
+    }
 
+    private fun registerReceiver(receiver: BroadcastReceiver?, filter: IntentFilter) {
+        mContext?.registerReceiver(receiver, filter)
+    }
 
-
+    /**
+     * Helper method for unregistration of an existing receiver.
+     */
+    private fun unregisterReceiver(receiver: BroadcastReceiver) {
+        mContext?.unregisterReceiver(receiver)
+    }
 
 }

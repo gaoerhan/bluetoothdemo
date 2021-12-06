@@ -2,6 +2,7 @@ package tech.tosee.bluetoothdemo.audio;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -23,6 +24,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import tech.tosee.bluetoothdemo.utils.BTUtil;
 
 /**
  * 蓝牙设备连接相关建监听和管理
@@ -75,7 +78,7 @@ public class DBBluetoothManager {
     private static final String HEADSET_EXTRA_STATE = "android.bluetooth.headset.extra.STATE";
 
     private static final int STATE_DISCONNECTED = 0x00000000;
-
+    private MyAudioManager myAudioManager;
     private String curBlueDeviceName;
     // Runs when the Bluetooth timeout expires. We use that timeout after calling
     // startScoAudio() or stopScoAudio() because we're not guaranteed to get a
@@ -104,6 +107,8 @@ public class DBBluetoothManager {
             Log.d(TAG, "BluetoothServiceListener.onServiceConnected: BT state=" + bluetoothState);
             // Android only supports one connected Bluetooth Headset at a time.
             bluetoothHeadset = (BluetoothHeadset) proxy;
+            startScoAudio();
+
             Log.d(TAG, "onServiceConnected done: BT state=" + bluetoothState);
         }
 
@@ -139,9 +144,7 @@ public class DBBluetoothManager {
                 Log.d(TAG, "### cur_bond_state ##" + cur_bond_state + " ~~ previous_bond_state" + previous_bond_state);
 
             }
-            if (action.equals(BluetoothDevice.ACTION_ACL_CONNECTED)) {
-                Log.d(TAG, "与远程设备建立了ACL连接发出的广播");
-            }
+
             if (action.equals(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED)) {
                 Log.d(TAG, "底层发出断开连接请求,ACL连接即将断开");
             }
@@ -248,18 +251,56 @@ public class DBBluetoothManager {
                         + "sb=" + isInitialStickyBroadcast() + ", "
                         + "BT state: " + bluetoothState);
                 if (state == BluetoothHeadset.STATE_AUDIO_CONNECTED) {
-//                    audioManager.setBluetoothScoOn(true);
-                    findConnectedDevice();
                     Log.d(TAG, "广播 +++ Bluetooth audio SCO is now connected");
-
+//                    bluetoothState =State.SCO_CONNECTED;
 
                 } else if (state == BluetoothHeadset.STATE_AUDIO_CONNECTING) {
                     Log.d(TAG, "广播 +++ Bluetooth audio SCO is now connecting...");
                 } else if (state == BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
                     Log.d(TAG, "广播 +++ Bluetooth audio SCO is now disconnected");
-//                    audioManager.setBluetoothScoOn(false);
+//                    if(!myAudioManager.hasAudioFocus())startScoAudio();
                 }
             }
+
+
+            if (action.equals(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)) {
+                final int state = intent.getIntExtra(
+                        AudioManager.EXTRA_SCO_AUDIO_STATE, AudioManager.SCO_AUDIO_STATE_DISCONNECTED);
+
+                if (state == AudioManager.SCO_AUDIO_STATE_CONNECTED) {
+                    Log.d(TAG, " 广播 action sco +++ Bluetooth audio SCO is now connected");
+//                    cancelTimer();
+//                    if (bluetoothState == State.SCO_CONNECTING) {
+//                        bluetoothState = State.SCO_CONNECTED;
+//                        scoConnectionAttempts = 0;
+//                        updateAudioDeviceState();
+//                    } else {
+//                        Log.w(TAG, "Unexpected state BluetoothHeadset.STATE_AUDIO_CONNECTED");
+//                    }
+//                    bluetoothState =State.SCO_CONNECTED;
+                } else if (state == AudioManager.SCO_AUDIO_STATE_CONNECTING) {
+                    Log.d(TAG, " 广播 action sco  +++ Bluetooth audio SCO is now connecting...");
+                } else if (state == AudioManager.SCO_AUDIO_STATE_DISCONNECTED) {
+                    Log.d(TAG, "广播  action sco  +++ Bluetooth audio SCO is now disconnected");
+//                    if (isInitialStickyBroadcast()) {
+//                        Log.d(TAG, "Ignore STATE_AUDIO_DISCONNECTED initial sticky broadcast.");
+//                        return;
+//                    }
+//                    updateAudioDeviceState();
+//                    if(bluetoothState == State.HEADSET_AVAILABLE)startScoAudio();
+                }
+
+//                final int statepre = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_PREVIOUS_STATE,AudioManager.SCO_AUDIO_STATE_DISCONNECTED);
+//
+//                if(statepre == AudioManager.SCO_AUDIO_STATE_CONNECTED){
+//                    Log.d(TAG, "previous +++ Bluetooth audio SCO is now connected");
+//                }else if(statepre == AudioManager.SCO_AUDIO_STATE_CONNECTING){
+//                    Log.d(TAG, "previous +++ Bluetooth audio SCO is now connecting...");
+//                }else if(statepre == AudioManager.SCO_AUDIO_STATE_DISCONNECTED){
+//                    Log.d(TAG, "previous +++ Bluetooth audio SCO is now disconnected");
+//                }
+            }
+
 
             if (intent.getAction() == BluetoothDevice.ACTION_ACL_CONNECTED) {
                 Log.d(TAG, "连接成功");
@@ -283,10 +324,6 @@ public class DBBluetoothManager {
                     }
                 }, new IntentFilter(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED));
             }
-            if (intent.getAction() == BluetoothDevice.ACTION_ACL_DISCONNECTED) {
-                Log.d(TAG, "连接失败");
-            }
-
 
         }
     }
@@ -294,13 +331,15 @@ public class DBBluetoothManager {
     /**
      * Construction.
      */
-    static DBBluetoothManager create(Context context) {
-        return new DBBluetoothManager(context);
+    static DBBluetoothManager create(Context context, MyAudioManager audioManager) {
+        return new DBBluetoothManager(context,audioManager);
     }
 
-    protected DBBluetoothManager(Context context) {
+
+    protected DBBluetoothManager(Context context , MyAudioManager audioManager) {
         Log.d(TAG, "ctor");
         apprtcContext = context;
+        myAudioManager = audioManager;
         this.audioManager = getAudioManager(context);
         bluetoothState = State.UNINITIALIZED;
         bluetoothServiceListener = new BluetoothServiceListener();
@@ -313,6 +352,9 @@ public class DBBluetoothManager {
      */
     public State getState() {
         return bluetoothState;
+    }
+    public void resetState(){
+        bluetoothState = State.HEADSET_AVAILABLE;
     }
 
     /**
@@ -365,7 +407,6 @@ public class DBBluetoothManager {
         bluetoothHeadsetFilter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
         // Register receiver for change in audio connection state of the Headset profile.
         bluetoothHeadsetFilter.addAction(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED);
-        bluetoothHeadsetFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
 
         bluetoothHeadsetFilter.addAction(BluetoothDevice.ACTION_FOUND);
         //搜索蓝压设备，每搜到一个设备发送一条广播
@@ -400,6 +441,7 @@ public class DBBluetoothManager {
 
         bluetoothHeadsetFilter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
         //搜索模式改变
+        bluetoothHeadsetFilter.addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED);
 
 
         registerReceiver(bluetoothHeadsetReceiver, bluetoothHeadsetFilter);
@@ -408,6 +450,8 @@ public class DBBluetoothManager {
         Log.d(TAG, "Bluetooth proxy for headset profile has started");
         bluetoothState = State.HEADSET_UNAVAILABLE;
         Log.d(TAG, "start done: BT state=" + bluetoothState);
+
+        findDevice();
 
     }
 
@@ -457,11 +501,9 @@ public class DBBluetoothManager {
         // The SCO connection establishment can take several seconds, hence we cannot rely on the
         // connection to be available when the method returns but instead register to receive the
         // intent ACTION_SCO_AUDIO_STATE_UPDATED and wait for the state to be SCO_AUDIO_STATE_CONNECTED.
-        if (audioManager.isBluetoothScoOn()) {
-            audioManager.stopBluetoothSco();
-            audioManager.setBluetoothScoOn(false);
-        }
+        Log.d(TAG,"开启蓝牙sco前");
         bluetoothState = State.SCO_CONNECTING;
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
         audioManager.startBluetoothSco();
         audioManager.setBluetoothScoOn(true);
 
@@ -581,12 +623,7 @@ public class DBBluetoothManager {
         if (!pairedDevices.isEmpty()) {
             for (BluetoothDevice device : pairedDevices) {
                 if (isBlueDeviceConnect(device)) {
-                    Log.d(TAG, " 连接的蓝牙设备" + device.getName() + "  state" + isBlueDeviceConnect(device));
-
-                    audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-                    startScoAudio();
-                    audioManager.setSpeakerphoneOn(false);
-
+                    Log.d(TAG, " 连接的蓝牙设备" + device.getName() + "  state" + isBlueDeviceConnect(device) + "类型： " + getDeviceType(device.getBluetoothClass()));
                     break;
                 }
             }
@@ -611,6 +648,29 @@ public class DBBluetoothManager {
         }
         return isConnected;
     }
+
+    private String getDeviceType(BluetoothClass bluetoothClass) {
+        if (bluetoothClass == null) {
+            return "ic_settings_bluetooth";
+        } else{
+            if (bluetoothClass.getMajorDeviceClass() == BluetoothClass.Device.Major.AUDIO_VIDEO) {
+                switch (bluetoothClass.getDeviceClass()) {
+                    case BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET:
+                        return "ic_bt_AUDIO_VIDEO_WEARABLE_HEADSET";
+                    case BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES:
+                        return "ic_bt_AUDIO_VIDEO_HEADPHONES";
+                    case BluetoothClass.Device.AUDIO_VIDEO_HIFI_AUDIO:
+                        return "ic_bt_AUDIO_VIDEO_HIFI_AUDIO";
+                    default:
+                        return "ic_bt_AUDIO_VIDEO_VIDEO_MONITOR";
+
+                }
+            }else {
+                return "ic_bt_AUDIO_VIDEO_VIDEO_MONITOR";
+            }
+        }
+    }
+
 
     /**
      * Called when start of the BT SCO channel takes too long time. Usually
